@@ -1,0 +1,208 @@
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # allow frontend served from file:// or different origin
+
+@app.route("/api/chat/", methods=["POST"])
+def chat():
+    data = request.get_json(force=True)
+    user_message = data.get("user_message", "")
+    # Simple echo/stub response. Replace with real call to your AI / ChatBot.py as needed.
+    return jsonify({"ai_response": f"Stub reply: I received: {user_message}"}), 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Customer Support Chatbot</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f8; /* Light gray background */
+        }
+        .chat-container {
+            max-height: 80vh; /* Responsive height for the chat window */
+            min-height: 400px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        /* Custom scrollbar for aesthetics */
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #4a5568;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 md:p-8 bg-gray-100">
+
+    <div id="chat-widget" class="w-full max-w-lg bg-white shadow-2xl rounded-xl flex flex-col transition-all duration-300 transform hover:shadow-3xl">
+
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-4 rounded-t-xl flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-green-400 rounded-full mr-3 animate-pulse"></div>
+                <h1 class="text-xl font-semibold">Support Assistant AI</h1>
+            </div>
+            <span class="text-sm opacity-80">Online</span>
+        </header>
+
+        <!-- Chat Messages Container -->
+        <div id="messages" class="chat-container flex flex-col p-4 space-y-4 flex-grow">
+            <!-- Initial Bot Message -->
+            <div class="flex justify-start">
+                <div class="bg-gray-200 text-gray-800 p-3 rounded-tr-xl rounded-b-xl max-w-xs md:max-w-md shadow-sm">
+                    <p>Hello! I'm your AI Support Assistant. Ask me about shipping, refunds, or product information.</p>
+                    <span class="text-xs text-gray-500 block mt-1">AI | 10:00 AM</span>
+                </div>
+            </div>
+            <!-- Messages will be injected here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+            <div id="typing-indicator" class="text-sm text-indigo-600 mb-2 hidden">
+                Assistant is typing...
+            </div>
+            <div class="flex space-x-3">
+                <input type="text" id="user-input" placeholder="Type your message here..."
+                       class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                       onkeydown="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" id="send-button"
+                        class="bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+        
+        // Frontend now uses a relative path. The Django server must host this HTML file 
+        // or configure CORS correctly to allow requests from the host serving this file.
+        const djangoEndpoint = '/api/chat/'; 
+
+        // Helper function to append a message to the chat
+        function appendMessage(text, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', isUser ? 'justify-end' : 'justify-start');
+
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const senderTag = isUser ? 'You' : 'AI';
+            const bgColor = isUser ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-800';
+            const borderRadius = isUser ? 'rounded-tl-xl rounded-b-xl' : 'rounded-tr-xl rounded-b-xl';
+
+            messageDiv.innerHTML = `
+                <div class="${bgColor} p-3 ${borderRadius} max-w-xs md:max-w-md shadow-md">
+                    <p>${text}</p>
+                    <span class="text-xs ${isUser ? 'text-indigo-200' : 'text-gray-500'} block mt-1">${senderTag} | ${timestamp}</span>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Auto-scroll to bottom
+        }
+
+        // Main function to send the message to the backend
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            // 1. Display user message and clear input
+            appendMessage(message, true);
+            userInput.value = '';
+            
+            // 2. Disable input and show typing indicator
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            typingIndicator.classList.remove('hidden');
+            
+            // Auto-scroll after displaying user message
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                // 3. ACTUAL API CALL
+                const response = await fetchWithBackoff(djangoEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Note: CSRF token may be needed if not using Django's built-in static serving
+                    },
+                    body: JSON.stringify({ user_message: message }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                
+                // 4. Display AI response
+                const aiResponseText = responseData.ai_response || "I'm sorry, I encountered an internal error from the server.";
+                appendMessage(aiResponseText, false);
+
+            } catch (error) {
+                console.error("Chatbot API Error:", error);
+                // Informative error message for the user
+                appendMessage("I apologize, I'm having trouble communicating with the AI brain. Please make sure your Django server is running!", false);
+            } finally {
+                // 5. Re-enable input and hide typing indicator
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                typingIndicator.classList.add('hidden');
+                userInput.focus();
+            }
+        }
+
+        // --- Exponential Backoff Fetch Utility (MANDATORY for API calls) ---
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            let attempt = 0;
+            while (attempt < maxRetries) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status !== 429 && response.status < 500) {
+                        return response; // Success or client error, don't retry
+                    }
+                    
+                    // If 429 (Too Many Requests) or 5xx, we retry
+                    console.warn(`Server error (${response.status}). Retrying in ${Math.pow(2, attempt)}s...`);
+
+                } catch (error) {
+                    // Network errors
+                    console.error(`Attempt ${attempt + 1} failed with network error:`, error);
+                    // Crucial: Re-throw the error on the first network failure to prevent silent retries of unparsable URLs
+                    if (error.name === 'TypeError' && attempt === 0) {
+                        throw error;
+                    }
+                }
+
+                attempt++;
+                if (attempt < maxRetries) {
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            throw new Error(`Fetch failed after ${maxRetries} attempts.`);
+        }
+
+    </script>
+
+</body>
+</html>
