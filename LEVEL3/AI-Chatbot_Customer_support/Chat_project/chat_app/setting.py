@@ -105,11 +105,16 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'djongo',
+        'NAME': 'chatbot_db',  # Your desired MongoDB database name
+        'CLIENT': {
+            'host': 'mongodb://localhost:27017/',
+            # IMPORTANT: If your MongoDB is hosted elsewhere (e.g., MongoDB Atlas),
+            # replace 'mongodb://localhost:27017/' with your full connection string
+            'authMechanism': 'SCRAM-SHA-1', # Default auth mechanism for MongoDB
+        }
     }
 }
-
 
 # --- 7. PASSWORD VALIDATION & INTERNATIONALIZATION (Standard Django) ---
 

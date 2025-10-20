@@ -4,8 +4,17 @@ import os
 import requests # Essential for making external API calls
 
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
+
+try:
+    from django.views.decorators.csrf import csrf_exempt
+    from django.views.decorators.http import require_POST
+except Exception:
+    # Provide no-op decorators when Django is not available (e.g., static analysis or lightweight tests)
+    def csrf_exempt(view_func):
+        return view_func
+
+    def require_POST(view_func):
+        return view_func
 
 # Configure basic logging to see issues in your Codespaces console
 logger = logging.getLogger(__name__)
@@ -86,7 +95,7 @@ def get_ai_response_from_gemini(user_query):
 # --- 3. DJANGO API VIEW ---
 
 @csrf_exempt
-@api_view(['POST'])
+@require_POST
 def chat_api_view(request):
     """
     The main API endpoint that connects the frontend to the generative AI service.
